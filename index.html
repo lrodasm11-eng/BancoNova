@@ -1,0 +1,371 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banco Nova</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <header class="encabezado">
+        <div class="logo">BANCO <span>NOVA</span></div>
+        <p>Tu dinero, tu tranquilidad</p>
+    </header>
+
+    <main class="contenedor">
+
+        <!-- INICIO DE SESION -->
+        <section id="pantallaLogin" class="tarjeta login">
+            <div class="icono-principal">🏦</div>
+            <h1>Bienvenido a Banco Nova</h1>
+            <p class="subtitulo">Ingresa tus datos para continuar</p>
+
+            <form id="formLogin">
+                <label for="usuario">Usuario</label>
+                <input type="text" id="usuario"
+                       placeholder="Ingresa tu usuario" required>
+
+                <label for="clave">Contraseña</label>
+                <input type="password" id="clave"
+                       placeholder="Ingresa tu contraseña" required>
+
+                <button type="submit" class="boton-principal">
+                    Iniciar sesión
+                </button>
+            </form>
+
+            <p id="mensajeLogin" class="mensaje"></p>
+            <p class="nota">Usuario de prueba: admin | Contraseña: 2026</p>
+        </section>
+
+        <!-- MENU PRINCIPAL -->
+        <section id="menuPrincipal" class="tarjeta oculto">
+            <div class="bienvenida">
+                <div>
+                    <h1>¡Hola, <span id="nombreUsuario">admin</span>!</h1>
+                    <p>¿Qué deseas realizar hoy?</p>
+                </div>
+                <button id="cerrarSesion" class="boton-salir">
+                    Cerrar sesión
+                </button>
+            </div>
+
+            <div class="saldo-principal">
+                <p>Saldo disponible</p>
+                <h2 id="saldoMenu">Q 1,500.00</h2>
+                <small>Cuenta No. 100001</small>
+            </div>
+
+            <h2 class="titulo-seccion">Operaciones bancarias</h2>
+
+            <div class="opciones">
+                <button class="operacion" data-pagina="paginaDeposito">
+                    <span>💰</span>
+                    <strong>Depósitos</strong>
+                    <small>Agregar dinero</small>
+                </button>
+
+                <button class="operacion" data-pagina="paginaRetiro">
+                    <span>💵</span>
+                    <strong>Retiros</strong>
+                    <small>Retirar dinero</small>
+                </button>
+
+                <button class="operacion" data-pagina="paginaTransferencia">
+                    <span>🔄</span>
+                    <strong>Transferencias</strong>
+                    <small>Enviar dinero</small>
+                </button>
+
+                <button class="operacion" data-pagina="paginaConsulta">
+                    <span>📋</span>
+                    <strong>Consultas</strong>
+                    <small>Ver información</small>
+                </button>
+            </div>
+
+            <div class="movimientos">
+                <h2>Movimientos recientes</h2>
+                <div id="listaMovimientos">
+                    <p class="vacio">Todavía no hay movimientos.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGINA DE DEPOSITO -->
+        <section id="paginaDeposito" class="tarjeta pagina oculto">
+            <div class="encabezado-pagina">
+                <span class="icono-pagina">💰</span>
+                <div>
+                    <h1>Realizar depósito</h1>
+                    <p>Agrega dinero a tu cuenta</p>
+                </div>
+            </div>
+
+            <div class="resumen">
+                Saldo actual:
+                <strong class="saldoActual">Q 1,500.00</strong>
+            </div>
+
+            <form class="formulario" data-tipo="deposito">
+                <label for="montoDeposito">Monto a depositar</label>
+                <input type="number" id="montoDeposito"
+                       min="0.01" step="0.01"
+                       placeholder="Ej. 500" required>
+
+                <button type="submit" class="boton-principal">
+                    Confirmar depósito
+                </button>
+
+                <p class="resultado"></p>
+            </form>
+
+            <button class="boton-secundario volver">Volver al menú</button>
+        </section>
+
+        <!-- PAGINA DE RETIRO -->
+        <section id="paginaRetiro" class="tarjeta pagina oculto">
+            <div class="encabezado-pagina">
+                <span class="icono-pagina">💵</span>
+                <div>
+                    <h1>Realizar retiro</h1>
+                    <p>Retira dinero de tu cuenta</p>
+                </div>
+            </div>
+
+            <div class="resumen">
+                Saldo actual:
+                <strong class="saldoActual">Q 1,500.00</strong>
+            </div>
+
+            <form class="formulario" data-tipo="retiro">
+                <label for="montoRetiro">Monto a retirar</label>
+                <input type="number" id="montoRetiro"
+                       min="0.01" step="0.01"
+                       placeholder="Ej. 200" required>
+
+                <button type="submit" class="boton-principal">
+                    Confirmar retiro
+                </button>
+
+                <p class="resultado"></p>
+            </form>
+
+            <button class="boton-secundario volver">Volver al menú</button>
+        </section>
+
+        <!-- PAGINA DE TRANSFERENCIA -->
+        <section id="paginaTransferencia" class="tarjeta pagina oculto">
+            <div class="encabezado-pagina">
+                <span class="icono-pagina">🔄</span>
+                <div>
+                    <h1>Realizar transferencia</h1>
+                    <p>Envía dinero a otra cuenta</p>
+                </div>
+            </div>
+
+            <div class="resumen">
+                Saldo actual:
+                <strong class="saldoActual">Q 1,500.00</strong>
+            </div>
+
+            <!-- LIMITE DIARIO -->
+            <div class="limite-diario">
+                <div class="limite-titulo">
+                    <div>
+                        <h3>Límite diario de transferencias</h3>
+                        <p>Control de seguridad de tu cuenta</p>
+                    </div>
+                    <span class="escudo">🛡️</span>
+                </div>
+
+                <div class="limite-cantidades">
+                    <div>
+                        <small>Disponible</small>
+                        <h2 id="limiteDisponible">Q 30,000.00</h2>
+                    </div>
+
+                    <div class="utilizado">
+                        <small>Utilizado</small>
+                        <strong id="limiteUtilizado">Q 0.00</strong>
+                    </div>
+                </div>
+
+                <div class="barra-fondo">
+                    <div id="barraLimite" class="barra-progreso"></div>
+                </div>
+
+                <div class="limite-pie">
+                    <span>Q 0.00</span>
+                    <span>Límite: Q 30,000.00</span>
+                </div>
+            </div>
+
+            <form class="formulario" data-tipo="transferencia">
+                <label for="cuentaDestino">Selecciona la cuenta destino</label>
+
+                <select id="cuentaDestino" required>
+                    <option value="">Selecciona una cuenta</option>
+                    <option value="100002">100002 - Carlos Méndez</option>
+                    <option value="100003">100003 - Ana López</option>
+                </select>
+
+                <div id="resumenDestino" class="resumen-destino"></div>
+
+                <label for="montoTransferencia">Monto a transferir</label>
+                <input type="number" id="montoTransferencia"
+                       min="0.01" step="0.01"
+                       placeholder="Ej. 500" required>
+
+                <button type="submit" class="boton-principal">
+                    Continuar transferencia
+                </button>
+
+                <div id="alertaTransferencia"
+                     class="alerta-transferencia oculto"
+                     role="status" aria-live="polite">
+                    <span id="iconoAlerta">✓</span>
+                    <div>
+                        <strong id="tituloAlerta">Operación realizada</strong>
+                        <p id="textoAlerta"></p>
+                    </div>
+                </div>
+
+                <p class="resultado"></p>
+            </form>
+
+            <button class="boton-secundario volver">Volver al menú</button>
+        </section>
+
+        <!-- PAGINA DE CONSULTA -->
+        <section id="paginaConsulta" class="tarjeta pagina oculto">
+            <div class="encabezado-pagina">
+                <span class="icono-pagina">📋</span>
+                <div>
+                    <h1>Consulta de cuenta</h1>
+                    <p>Información de tu cuenta bancaria</p>
+                </div>
+            </div>
+
+            <div class="saldo-consulta">
+                <p>Saldo disponible</p>
+                <h2 id="saldoConsulta">Q 1,500.00</h2>
+            </div>
+
+            <div class="datos-cuenta">
+                <p><strong>Banco:</strong> Banco Nova</p>
+                <p><strong>Titular:</strong> <span id="nombreConsulta">admin</span></p>
+                <p><strong>Número de cuenta:</strong> 100001</p>
+                <p><strong>Tipo de cuenta:</strong> Cuenta monetaria</p>
+                <p><strong>Total de movimientos:</strong>
+                    <span id="totalMovimientos">0</span>
+                </p>
+            </div>
+
+            <div class="movimientos">
+                <h2>Historial de movimientos</h2>
+                <div id="movimientosConsulta">
+                    <p class="vacio">Todavía no hay movimientos.</p>
+                </div>
+            </div>
+
+            <button class="boton-secundario volver">Volver al menú</button>
+        </section>
+
+    </main>
+
+    <!-- VENTANA PARA CONFIRMAR TRANSFERENCIA -->
+    <div id="modalConfirmacion" class="fondo-modal oculto">
+        <div class="modal">
+            <div class="modal-icono">🔄</div>
+            <h2>Confirmar transferencia</h2>
+            <p>Verifica los datos antes de continuar.</p>
+
+            <div class="detalle-confirmacion">
+                <p><strong>Destinatario:</strong>
+                    <span id="confirmarDestinatario"></span>
+                </p>
+                <p><strong>Cuenta:</strong>
+                    <span id="confirmarCuenta"></span>
+                </p>
+                <p><strong>Monto:</strong>
+                    <span id="confirmarMonto"></span>
+                </p>
+                <p><strong>Saldo después:</strong>
+                    <span id="confirmarSaldo"></span>
+                </p>
+            </div>
+
+            <div class="botones-modal">
+                <button id="cancelarTransferencia"
+                        class="boton-secundario">
+                    Cancelar
+                </button>
+
+                <button id="aceptarTransferencia"
+                        class="boton-principal">
+                    Confirmar y enviar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMPROBANTE DE TRANSFERENCIA -->
+    <div id="modalComprobante" class="fondo-modal oculto">
+        <div class="modal comprobante">
+            <div class="comprobante-cabecera">
+                <div class="comprobante-check">✓</div>
+                <h2>¡Transferencia exitosa!</h2>
+                <p>Banco Nova</p>
+            </div>
+
+            <div class="comprobante-monto">
+                <small>Monto transferido</small>
+                <h1 id="comprobanteMonto">Q 0.00</h1>
+            </div>
+
+            <div class="detalle-comprobante">
+                <p><span>Operación</span>
+                    <strong id="comprobanteNumero"></strong>
+                </p>
+                <p><span>Fecha y hora</span>
+                    <strong id="comprobanteFecha"></strong>
+                </p>
+                <p><span>Destinatario</span>
+                    <strong id="comprobanteDestinatario"></strong>
+                </p>
+                <p><span>Cuenta destino</span>
+                    <strong id="comprobanteCuenta"></strong>
+                </p>
+                <p><span>Cuenta origen</span>
+                    <strong>100001</strong>
+                </p>
+                <p><span>Saldo restante</span>
+                    <strong id="comprobanteSaldo"></strong>
+                </p>
+                <p><span>Estado</span>
+                    <strong class="estado-comprobante">Completada</strong>
+                </p>
+            </div>
+
+            <button id="imprimirComprobante"
+                    class="boton-principal">
+                Imprimir comprobante
+            </button>
+
+            <button id="cerrarComprobante"
+                    class="boton-secundario">
+                Cerrar
+            </button>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2026 Banco Nova | Sistema bancario académico</p>
+    </footer>
+
+    <script src="programa.js"></script>
+</body>
+</html>
