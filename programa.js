@@ -1,810 +1,981 @@
 
-// ========================================
-// CONFIGURACION INICIAL
-// ========================================
+/* =====================================
+   BANCO NOVA
+   SISTEMA SIN BASE DE DATOS EXTERNA
+===================================== */
 
-const CREDENCIALES = {
-    usuario: "admin",
-    clave: "2026"
-};
+const CLAVE = "bancoNovaDatos";
 
-const LIMITE_DIARIO = 30000;
-const SALDO_INICIAL = 1500;
+const dinero = n => Number(n).toLocaleString("es-GT", {
+    style: "currency",
+    currency: "GTQ"
+});
 
-// Elementos principales
-const pantallaLogin = document.getElementById("pantallaLogin");
-const menuPrincipal = document.getElementById("menuPrincipal");
-const formLogin = document.getElementById("formLogin");
-const mensajeLogin = document.getElementById("mensajeLogin");
+const fechaActual = () => new Date().toLocaleString("es-GT");
 
-// Variables del sistema
-let saldoActual = SALDO_INICIAL;
-let movimientos = [];
-let transferidoHoy = 0;
-let fechaLimite = obtenerFechaActual();
-let transferenciaPendiente = null;
+const escapar = texto => String(texto ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;",
+    '"': "&quot;", "'": "&#039;"
+})[c]);
 
-// ========================================
-// ALMACENAMIENTO DE INFORMACION
-// ========================================
+function generarCuenta() {
+    return "BN" + Math.floor(10000000 + Math.random() * 90000000);
+}
 
-// Cargar los datos guardados en el navegador
 function cargarDatos() {
     try {
-        const saldoGuardado = localStorage.getItem("bancoNovaSaldo");
-        const movimientosGuardados =
-            localStorage.getItem("bancoNovaMovimientos");
-
-        if (saldoGuardado !== null) {
-            const saldoNumero = Number(saldoGuardado);
-
-            if (Number.isFinite(saldoNumero) && saldoNumero >= 0) {
-                saldoActual = saldoNumero;
-            }
-        }
-
-        if (movimientosGuardados !== null) {
-            const lista = JSON.parse(movimientosGuardados);
-
-            if (Array.isArray(lista)) {
-                movimientos = lista;
-            }
-        }
-
+        const guardado = localStorage.getItem(CLAVE);
+        if (guardado) return JSON.parse(guardado);
     } catch (error) {
-        console.error("No se pudieron cargar los datos:", error);
+        console.error("Error al leer los datos:", error);
     }
 
-    // Cargar limite diario
-    fechaLimite = obtenerFechaActual();
+    const inicial = {
+        usuarios: [
+            {
+                id: 1, nombre: "Administrador",
+                correo: "admin@banconova.com",
+                password: "admin123",
+                cuenta: "BN00000001", saldo: 0,
+                rol: "admin", bloqueado: false, fecha: fechaActual()
+            },
+            {
+                id: 2, nombre: "María López",
+                correo: "maria@banconova.com",
+                password: "maria123",
+                cuenta: "BN00000002", saldo: 2500,
+                rol: "usuario", bloqueado: false, fecha: fechaActual()
+            },
+            {
+                id: 3, nombre: "Carlos Pérez",
+                correo: "carlos@banconova.com",
+                password: "carlos123",
+                cuenta: "BN00000003", saldo: 1800,
+                rol: "usuario", bloqueado: false, fecha: fechaActual()
+            }
+        ],
+        movimientos: [],
+        ahorros: [],
+        publicaciones: [],
+        reportes: [],
+        siguienteId: 4
+    };
 
-    const fechaGuardada =
-        localStorage.getItem("bancoNovaFechaLimite");
-
-    if (fechaGuardada === fechaLimite) {
-        const cantidadGuardada = Number(
-            localStorage.getItem("bancoNovaTransferidoHoy") || 0
-        );
-
-        transferidoHoy =
-            Number.isFinite(cantidadGuardada) &&
-            cantidadGuardada >= 0
-                ? cantidadGuardada
-                : 0;
-
-    } else {
-        transferidoHoy = 0;
-        guardarLimiteDiario();
-    }
+    localStorage.setItem(CLAVE, JSON.stringify(inicial));
+    return inicial;
 }
 
-// Guardar saldo e historial
+let datos = cargarDatos();
+let usuarioActual = null;
+let transferenciaPendiente = null;
+let ultimoRecibo = null;
+
 function guardarDatos() {
-    try {
-        localStorage.setItem(
-            "bancoNovaSaldo",
-            String(saldoActual)
-        );
-
-        localStorage.setItem(
-            "bancoNovaMovimientos",
-            JSON.stringify(movimientos)
-        );
-
-        return true;
-
-    } catch (error) {
-        console.error("No se pudieron guardar los datos:", error);
-        return false;
-    }
+    localStorage.setItem(CLAVE, JSON.stringify(datos));
 }
 
-// Guardar el limite diario
-function guardarLimiteDiario() {
-    try {
-        localStorage.setItem(
-            "bancoNovaTransferidoHoy",
-            String(transferidoHoy)
-        );
-
-        localStorage.setItem(
-            "bancoNovaFechaLimite",
-            fechaLimite
-        );
-
-    } catch (error) {
-        console.error("No se pudo guardar el límite diario:", error);
-    }
+function buscarUsuario(id) {
+    return datos.usuarios.find(u => u.id === Number(id));
 }
 
-// ========================================
-// FECHA Y FORMATO DE DINERO
-// ========================================
+function notificar(mensaje) {
+    const caja = document.getElementById("notificacion");
+    caja.textContent = mensaje;
+    caja.classList.remove("oculto");
 
-function obtenerFechaActual() {
-    const fecha = new Date();
+    clearTimeout(window.temporizadorNotificacion);
 
-    const anio = fecha.getFullYear();
-    const mes = String(fecha.getMonth() + 1).padStart(2, "0");
-    const dia = String(fecha.getDate()).padStart(2, "0");
-
-    return anio + "-" + mes + "-" + dia;
+    window.temporizadorNotificacion = setTimeout(() => {
+        caja.classList.add("oculto");
+    }, 3000);
 }
 
-function formatoDinero(cantidad) {
-    return cantidad.toLocaleString("es-GT", {
-        style: "currency",
-        currency: "GTQ",
-        minimumFractionDigits: 2
-    });
+/* =====================================
+   PANTALLAS
+===================================== */
+
+function mostrarPantalla(id) {
+    ["pantallaLogin", "pantallaRegistro", "panelUsuario", "panelAdmin"]
+        .forEach(p => document.getElementById(p).classList.add("oculto"));
+
+    document.getElementById(id).classList.remove("oculto");
 }
 
-// ========================================
-// INICIO DE SESION
-// ========================================
-
-formLogin.addEventListener("submit", function(evento) {
-    evento.preventDefault();
-
-    const usuario =
-        document.getElementById("usuario").value.trim();
-
-    const clave =
-        document.getElementById("clave").value;
-
-    if (
-        usuario === CREDENCIALES.usuario &&
-        clave === CREDENCIALES.clave
-    ) {
-        document.getElementById("nombreUsuario").textContent = usuario;
-        document.getElementById("nombreConsulta").textContent = usuario;
-
-        mensajeLogin.textContent = "";
-        mensajeLogin.className = "mensaje";
-
-        pantallaLogin.classList.add("oculto");
-        menuPrincipal.classList.remove("oculto");
-
-        mostrarPagina("menuPrincipal");
-        actualizarInformacion();
-
-    } else {
-        mensajeLogin.textContent =
-            "Usuario o contraseña incorrectos.";
-
-        mensajeLogin.className = "mensaje error";
-    }
+document.getElementById("mostrarRegistro").addEventListener("click", e => {
+    e.preventDefault();
+    mostrarPantalla("pantallaRegistro");
 });
 
-// ========================================
-// CAMBIAR ENTRE PAGINAS
-// ========================================
-
-function mostrarPagina(idPagina) {
-    menuPrincipal.classList.add("oculto");
-
-    document.querySelectorAll(".pagina").forEach(function(pagina) {
-        pagina.classList.add("oculto");
-    });
-
-    if (idPagina === "menuPrincipal") {
-        menuPrincipal.classList.remove("oculto");
-
-    } else {
-        document.getElementById(idPagina).classList.remove("oculto");
-    }
-
-    actualizarInformacion();
-
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
-}
-
-// Botones de operaciones
-document.querySelectorAll(".operacion").forEach(function(boton) {
-    boton.addEventListener("click", function() {
-        mostrarPagina(boton.dataset.pagina);
-    });
+document.getElementById("mostrarLogin").addEventListener("click", e => {
+    e.preventDefault();
+    mostrarPantalla("pantallaLogin");
 });
 
-// Botones para regresar al menu
-document.querySelectorAll(".volver").forEach(function(boton) {
-    boton.addEventListener("click", function() {
-        mostrarPagina("menuPrincipal");
-    });
-});
+/* =====================================
+   REGISTRO
+===================================== */
 
-// ========================================
-// CERRAR SESION
-// ========================================
+document.getElementById("formRegistro").addEventListener("submit", e => {
+    e.preventDefault();
 
-document.getElementById("cerrarSesion").addEventListener(
-    "click",
-    function() {
-        menuPrincipal.classList.add("oculto");
+    const nombre = document.getElementById("nombreRegistro").value.trim();
+    const correo = document.getElementById("correoRegistro").value.trim().toLowerCase();
+    const password = document.getElementById("passwordRegistro").value;
+    const mensaje = document.getElementById("mensajeRegistro");
 
-        document.querySelectorAll(".pagina").forEach(function(pagina) {
-            pagina.classList.add("oculto");
-        });
-
-        pantallaLogin.classList.remove("oculto");
-
-        formLogin.reset();
-        mensajeLogin.textContent = "";
-        mensajeLogin.className = "mensaje";
-    }
-);
-
-// ========================================
-// ACTUALIZAR LIMITE DIARIO
-// ========================================
-
-function actualizarLimiteDiario() {
-    const fechaActual = obtenerFechaActual();
-
-    // Reiniciar el limite al cambiar de dia
-    if (fechaActual !== fechaLimite) {
-        fechaLimite = fechaActual;
-        transferidoHoy = 0;
-        guardarLimiteDiario();
+    if (datos.usuarios.some(u => u.correo === correo)) {
+        mensaje.textContent = "Este correo ya está registrado.";
+        return;
     }
 
-    const disponible = Math.max(
-        0,
-        LIMITE_DIARIO - transferidoHoy
-    );
+    const nuevo = {
+        id: datos.siguienteId++,
+        nombre,
+        correo,
+        password,
+        cuenta: generarCuenta(),
+        saldo: 1500,
+        rol: "usuario",
+        bloqueado: false,
+        fecha: fechaActual()
+    };
 
-    const porcentajeUtilizado =
-        (transferidoHoy / LIMITE_DIARIO) * 100;
-
-    document.getElementById("limiteDisponible").textContent =
-        formatoDinero(disponible);
-
-    document.getElementById("limiteUtilizado").textContent =
-        formatoDinero(transferidoHoy);
-
-    const barra = document.getElementById("barraLimite");
-
-    barra.style.width =
-        Math.min(100, porcentajeUtilizado) + "%";
-
-    if (porcentajeUtilizado >= 90) {
-        barra.style.background = "#c0392b";
-
-    } else if (porcentajeUtilizado >= 70) {
-        barra.style.background = "#e69a24";
-
-    } else {
-        barra.style.background = "#16865b";
-    }
-}
-
-// ========================================
-// ALERTAS PERSONALIZADAS
-// ========================================
-
-function mostrarAlertaTransferencia(texto, correcto) {
-    const alerta =
-        document.getElementById("alertaTransferencia");
-
-    const icono =
-        document.getElementById("iconoAlerta");
-
-    const titulo =
-        document.getElementById("tituloAlerta");
-
-    const mensaje =
-        document.getElementById("textoAlerta");
-
-    alerta.classList.remove("oculto", "exito", "error");
-
-    alerta.classList.add(correcto ? "exito" : "error");
-
-    icono.textContent = correcto ? "✓" : "!";
-
-    titulo.textContent = correcto
-        ? "¡Transferencia exitosa!"
-        : "Alerta de seguridad";
-
-    mensaje.textContent = texto;
-}
-
-// ========================================
-// FUNCIONES DE LOS MOVIMIENTOS
-// ========================================
-
-function registrarMovimiento(descripcion, cantidad) {
-    movimientos.unshift({
-        fecha: new Date().toLocaleString("es-GT"),
-        descripcion: descripcion,
-        cantidad: cantidad
-    });
-
-    // Guardar los movimientos y el saldo
+    datos.usuarios.push(nuevo);
     guardarDatos();
-}
+    e.target.reset();
+    mensaje.textContent = "";
 
-// ========================================
-// PROCESAR DEPOSITOS Y RETIROS
-// ========================================
-
-document.querySelectorAll(".pagina form").forEach(
-    function(formulario) {
-
-        formulario.addEventListener("submit", function(evento) {
-            evento.preventDefault();
-
-            const tipo = formulario.dataset.tipo;
-
-            if (!tipo || tipo === "transferencia") {
-                return;
-            }
-
-            const resultado =
-                formulario.querySelector(".resultado");
-
-            resultado.textContent = "";
-            resultado.className = "resultado";
-
-            let cantidad;
-            let descripcion;
-
-            if (tipo === "deposito") {
-                cantidad = Number(
-                    document.getElementById("montoDeposito").value
-                );
-
-                descripcion = "Depósito";
-            }
-
-            if (tipo === "retiro") {
-                cantidad = Number(
-                    document.getElementById("montoRetiro").value
-                );
-
-                descripcion = "Retiro";
-            }
-
-            // Validar el monto
-            if (!Number.isFinite(cantidad) || cantidad <= 0) {
-                mostrarResultado(
-                    resultado,
-                    "Ingresa un monto mayor que cero.",
-                    false
-                );
-
-                return;
-            }
-
-            // Realizar deposito
-            if (tipo === "deposito") {
-                saldoActual += cantidad;
-            }
-
-            // Realizar retiro
-            if (tipo === "retiro") {
-
-                if (cantidad > saldoActual) {
-                    mostrarResultado(
-                        resultado,
-                        "No tienes suficiente saldo para realizar este retiro.",
-                        false
-                    );
-
-                    return;
-                }
-
-                saldoActual -= cantidad;
-            }
-
-            // Registrar el movimiento
-            registrarMovimiento(
-                descripcion,
-                tipo === "deposito" ? cantidad : -cantidad
-            );
-
-            actualizarInformacion();
-
-            mostrarResultado(
-                resultado,
-                "¡Operación realizada correctamente! Nuevo saldo: " +
-                formatoDinero(saldoActual),
-                true
-            );
-
-            formulario.reset();
-        });
-    }
-);
-
-// ========================================
-// INFORMACION DE CUENTA DESTINO
-// ========================================
-
-const cuentaDestino =
-    document.getElementById("cuentaDestino");
-
-function actualizarResumenTransferencia() {
-    const resumen =
-        document.getElementById("resumenDestino");
-
-    if (!cuentaDestino.value) {
-        resumen.textContent = "";
-        return;
-    }
-
-    if (cuentaDestino.value === "100002") {
-        resumen.textContent =
-            "Destinatario: Carlos Méndez | Cuenta: 100002";
-
-    } else if (cuentaDestino.value === "100003") {
-        resumen.textContent =
-            "Destinataria: Ana López | Cuenta: 100003";
-    }
-}
-
-cuentaDestino.addEventListener(
-    "change",
-    actualizarResumenTransferencia
-);
-
-// ========================================
-// CONFIRMACION DE TRANSFERENCIA
-// ========================================
-
-const formularioTransferencia =
-    document.querySelector(
-        'form[data-tipo="transferencia"]'
-    );
-
-const modalConfirmacion =
-    document.getElementById("modalConfirmacion");
-
-const botonCancelar =
-    document.getElementById("cancelarTransferencia");
-
-const botonAceptar =
-    document.getElementById("aceptarTransferencia");
-
-// Cuando se envía el formulario, primero se revisan los datos
-formularioTransferencia.addEventListener(
-    "submit",
-    function(evento) {
-        evento.preventDefault();
-
-        const resultado =
-            formularioTransferencia.querySelector(".resultado");
-
-        resultado.textContent = "";
-        resultado.className = "resultado";
-
-        document.getElementById("alertaTransferencia")
-            .classList.add("oculto");
-
-        const cuenta = cuentaDestino.value;
-
-        const cantidad = Number(
-            document.getElementById("montoTransferencia").value
-        );
-
-        // Comprobar cuenta
-        if (!cuenta) {
-            mostrarAlertaTransferencia(
-                "Selecciona una cuenta de destino.",
-                false
-            );
-
-            return;
-        }
-
-        // Comprobar monto
-        if (!Number.isFinite(cantidad) || cantidad <= 0) {
-            mostrarAlertaTransferencia(
-                "Ingresa un monto mayor que cero.",
-                false
-            );
-
-            return;
-        }
-
-        actualizarLimiteDiario();
-
-        const disponible = LIMITE_DIARIO - transferidoHoy;
-
-        // Comprobar límite por operación
-        if (cantidad > LIMITE_DIARIO) {
-            mostrarAlertaTransferencia(
-                "No puedes transferir más de Q 30,000.00 en una sola operación.",
-                false
-            );
-
-            return;
-        }
-
-        // Comprobar límite diario
-        if (cantidad > disponible) {
-            mostrarAlertaTransferencia(
-                "Has superado tu límite diario. Solamente tienes " +
-                formatoDinero(disponible) +
-                " disponibles para transferir.",
-                false
-            );
-
-            return;
-        }
-
-        // Comprobar saldo
-        if (cantidad > saldoActual) {
-            mostrarAlertaTransferencia(
-                "No tienes suficiente saldo para realizar esta transferencia.",
-                false
-            );
-
-            return;
-        }
-
-        // Obtener datos del destinatario
-        const opcion =
-            cuentaDestino.options[cuentaDestino.selectedIndex];
-
-        const destinatario = opcion.text;
-
-        // Guardar los datos temporalmente
-        transferenciaPendiente = {
-            cuenta: cuenta,
-            destinatario: destinatario,
-            cantidad: cantidad
-        };
-
-        // Mostrar los datos en la ventana de confirmación
-        document.getElementById("confirmarDestinatario")
-            .textContent = destinatario;
-
-        document.getElementById("confirmarCuenta")
-            .textContent = cuenta;
-
-        document.getElementById("confirmarMonto")
-            .textContent = formatoDinero(cantidad);
-
-        document.getElementById("confirmarSaldo")
-            .textContent = formatoDinero(saldoActual - cantidad);
-
-        modalConfirmacion.classList.remove("oculto");
-    }
-);
-
-// Cancelar transferencia
-botonCancelar.addEventListener("click", function() {
-    modalConfirmacion.classList.add("oculto");
-    transferenciaPendiente = null;
+    notificar("¡Cuenta creada exitosamente!");
+    iniciarSesion(nuevo);
 });
 
-// Confirmar y realizar transferencia
-botonAceptar.addEventListener("click", function() {
+/* =====================================
+   INICIO DE SESION
+===================================== */
 
-    if (!transferenciaPendiente) {
+document.getElementById("formLogin").addEventListener("submit", e => {
+    e.preventDefault();
+
+    const correo = document.getElementById("correoLogin").value.trim().toLowerCase();
+    const password = document.getElementById("passwordLogin").value;
+
+    const usuario = datos.usuarios.find(
+        u => u.correo === correo && u.password === password
+    );
+
+    if (!usuario) {
+        document.getElementById("mensajeLogin").textContent =
+            "Correo o contraseña incorrectos.";
         return;
     }
 
-    const datos = transferenciaPendiente;
-    const cantidad = datos.cantidad;
-
-    actualizarLimiteDiario();
-
-    const disponible = LIMITE_DIARIO - transferidoHoy;
-
-    // Volver a validar antes de completar la operación
-    if (
-        cantidad <= 0 ||
-        cantidad > LIMITE_DIARIO ||
-        cantidad > disponible ||
-        cantidad > saldoActual
-    ) {
-        modalConfirmacion.classList.add("oculto");
-
-        mostrarAlertaTransferencia(
-            "No fue posible completar la transferencia. Verifica tu saldo y el límite diario.",
-            false
-        );
-
-        transferenciaPendiente = null;
+    if (usuario.bloqueado) {
+        document.getElementById("mensajeLogin").textContent =
+            "Tu cuenta se encuentra bloqueada.";
         return;
     }
 
-    // Descontar el dinero
-    saldoActual -= cantidad;
+    iniciarSesion(usuario);
+});
 
-    // Actualizar el límite utilizado
-    transferidoHoy += cantidad;
-    guardarLimiteDiario();
+function iniciarSesion(usuario) {
+    usuarioActual = usuario;
 
-    // Crear número de operación
-    const numeroOperacion =
-        "BN" + Date.now().toString().slice(-10);
+    if (usuario.rol === "admin") {
+        mostrarPantalla("panelAdmin");
+        renderizarAdmin();
+    } else {
+        mostrarPantalla("panelUsuario");
+        document.getElementById("nombreUsuario").textContent = usuario.nombre;
+        mostrarSeccion("inicio");
+        actualizarSistema();
+    }
+}
 
-    // Guardar movimiento
-    movimientos.unshift({
-        fecha: new Date().toLocaleString("es-GT"),
-        descripcion: "Transferencia a " + datos.destinatario,
-        cantidad: -cantidad,
-        numeroOperacion: numeroOperacion
+/* =====================================
+   CERRAR SESION
+===================================== */
+
+document.getElementById("cerrarSesion").addEventListener("click", cerrarSesion);
+document.getElementById("cerrarSesionAdmin").addEventListener("click", cerrarSesion);
+
+function cerrarSesion() {
+    usuarioActual = null;
+    transferenciaPendiente = null;
+    ultimoRecibo = null;
+
+    cerrarModal();
+    document.getElementById("formLogin").reset();
+    document.getElementById("mensajeLogin").textContent = "";
+    document.getElementById("reciboTransferencia").classList.add("oculto");
+
+    mostrarPantalla("pantallaLogin");
+}
+
+/* =====================================
+   NAVEGACION
+===================================== */
+
+document.querySelectorAll(".opcion-menu").forEach(boton => {
+    boton.addEventListener("click", () => mostrarSeccion(boton.dataset.seccion));
+});
+
+document.querySelectorAll("[data-ir]").forEach(boton => {
+    boton.addEventListener("click", () => mostrarSeccion(boton.dataset.ir));
+});
+
+function mostrarSeccion(nombre) {
+    document.querySelectorAll(".seccion").forEach(s => s.classList.add("oculto"));
+
+    const seccion = document.getElementById("seccion-" + nombre);
+    if (seccion) seccion.classList.remove("oculto");
+
+    document.querySelectorAll(".opcion-menu").forEach(b => {
+        b.classList.toggle("activa", b.dataset.seccion === nombre);
     });
 
-    // Guardar todos los datos
+    actualizarSistema();
+}
+
+/* =====================================
+   ACTUALIZACION GENERAL
+===================================== */
+
+function actualizarSistema() {
+    if (!usuarioActual || usuarioActual.rol !== "usuario") return;
+
+    usuarioActual = buscarUsuario(usuarioActual.id);
+    if (!usuarioActual) return;
+
+    document.getElementById("saldoUsuario").textContent = dinero(usuarioActual.saldo);
+    document.getElementById("numeroCuenta").textContent =
+        "Número de cuenta: " + usuarioActual.cuenta;
+    document.getElementById("nombreUsuario").textContent = usuarioActual.nombre;
+    document.getElementById("saludoUsuario").textContent =
+        usuarioActual.nombre.split(" ")[0];
+
+    document.getElementById("totalTransferencias").textContent =
+        datos.movimientos.filter(m =>
+            m.usuarioId === usuarioActual.id &&
+            m.tipo === "Transferencia enviada"
+        ).length;
+
+    document.getElementById("totalAhorros").textContent =
+        datos.ahorros.filter(a => a.usuarioId === usuarioActual.id).length;
+
+    document.getElementById("totalPublicaciones").textContent =
+        datos.publicaciones.filter(p => p.usuarioId === usuarioActual.id).length;
+
+    renderizarActividad();
+    renderizarMovimientos();
+    renderizarAhorros();
+    renderizarPublicaciones();
+    renderizarContactos();
+    renderizarDestinatarios();
+    renderizarPerfil();
+}
+
+/* =====================================
+   MOVIMIENTOS
+===================================== */
+
+function registrarMovimiento(usuarioId, tipo, monto, descripcion) {
+    datos.movimientos.unshift({
+        id: Date.now() + Math.random(),
+        usuarioId,
+        tipo,
+        monto: Number(monto),
+        descripcion,
+        fecha: fechaActual()
+    });
+}
+
+function renderizarMovimientos() {
+    const lista = document.getElementById("listaMovimientos");
+
+    const movimientos = datos.movimientos.filter(
+        m => m.usuarioId === usuarioActual.id
+    );
+
+    lista.innerHTML = movimientos.length
+        ? movimientos.map(m => {
+            const entrada = m.tipo === "Transferencia recibida";
+            return `
+                <div class="tarjeta-movimiento ${entrada ? "entrada" : "salida"}">
+                    <h3>${escapar(m.tipo)}</h3>
+                    <p>${escapar(m.descripcion)}</p>
+                    <p>${escapar(m.fecha)}</p>
+                    <p class="${entrada ? "positivo" : "negativo"}">
+                        ${entrada ? "+" : "-"} ${dinero(m.monto)}
+                    </p>
+                </div>
+            `;
+        }).join("")
+        : "<p>Aún no tienes movimientos registrados.</p>";
+}
+
+function renderizarActividad() {
+    const lista = document.getElementById("actividadReciente");
+
+    const movimientos = datos.movimientos.filter(
+        m => m.usuarioId === usuarioActual.id
+    ).slice(0, 3);
+
+    lista.innerHTML = movimientos.length
+        ? movimientos.map(m =>
+            `<p>${escapar(m.tipo)} · ${dinero(m.monto)}</p>`
+        ).join("")
+        : "<p>No hay actividad reciente.</p>";
+}
+
+/* =====================================
+   TRANSFERENCIAS CON CONFIRMACION
+===================================== */
+
+function renderizarDestinatarios() {
+    const select = document.getElementById("cuentaDestino");
+
+    const usuarios = datos.usuarios.filter(u =>
+        u.rol === "usuario" &&
+        u.id !== usuarioActual.id &&
+        !u.bloqueado
+    );
+
+    select.innerHTML = '<option value="">Selecciona un usuario</option>' +
+        usuarios.map(u => `
+            <option value="${u.id}">
+                ${escapar(u.nombre)} - ${escapar(u.cuenta)}
+            </option>
+        `).join("");
+}
+
+/* Primero se revisan los datos y se abre la ventana.
+   Todavía NO se mueve dinero. */
+
+document.getElementById("formTransferencia").addEventListener("submit", e => {
+    e.preventDefault();
+
+    const destinatario = buscarUsuario(
+        document.getElementById("cuentaDestino").value
+    );
+
+    const monto = Number(
+        document.getElementById("montoTransferencia").value
+    );
+
+    const descripcion =
+        document.getElementById("descripcionTransferencia").value.trim()
+        || "Transferencia entre cuentas";
+
+    const mensaje = document.getElementById("mensajeTransferencia");
+    mensaje.textContent = "";
+
+    if (!destinatario || destinatario.rol !== "usuario" ||
+        destinatario.bloqueado) {
+        mensaje.textContent = "Selecciona un destinatario válido.";
+        return;
+    }
+
+    if (!Number.isFinite(monto) || monto <= 0) {
+        mensaje.textContent = "Ingresa un monto válido.";
+        return;
+    }
+
+    if (monto > usuarioActual.saldo) {
+        mensaje.textContent = "No tienes saldo suficiente.";
+        return;
+    }
+
+    const inicioDia = new Date();
+    inicioDia.setHours(0, 0, 0, 0);
+
+    const totalDiario = datos.movimientos
+        .filter(m =>
+            m.usuarioId === usuarioActual.id &&
+            m.tipo === "Transferencia enviada" &&
+            new Date(m.id).getTime() >= inicioDia.getTime()
+        )
+        .reduce((total, m) => total + m.monto, 0);
+
+    if (totalDiario + monto > 30000) {
+        mensaje.textContent = "Superaste el límite diario de Q30,000.";
+        notificar("Límite diario de transferencias excedido.");
+        return;
+    }
+
+    transferenciaPendiente = {
+        destinatarioId: destinatario.id,
+        monto,
+        descripcion
+    };
+
+    document.getElementById("confirmarDestinatario").textContent =
+        destinatario.nombre;
+
+    document.getElementById("confirmarCuenta").textContent =
+        destinatario.cuenta;
+
+    document.getElementById("confirmarMonto").textContent = dinero(monto);
+
+    document.getElementById("confirmarDescripcion").textContent = descripcion;
+
+    document.getElementById("modalConfirmacion").classList.remove("oculto");
+});
+
+/* Si se cancela, no se modifica ningún saldo. */
+
+function cerrarModal() {
+    document.getElementById("modalConfirmacion").classList.add("oculto");
+    transferenciaPendiente = null;
+}
+
+document.getElementById("cancelarTransferencia").addEventListener("click", () => {
+    cerrarModal();
+    notificar("Transferencia cancelada.");
+});
+
+/* Solo al confirmar se realiza la operación. */
+
+document.getElementById("aceptarTransferencia").addEventListener("click", () => {
+    if (!transferenciaPendiente || !usuarioActual) return;
+
+    const operacion = { ...transferenciaPendiente };
+    const destinatario = buscarUsuario(operacion.destinatarioId);
+
+    // Comprobar nuevamente los datos antes de ejecutar.
+    if (!destinatario || destinatario.bloqueado ||
+        destinatario.id === usuarioActual.id) {
+        cerrarModal();
+        notificar("El destinatario ya no está disponible.");
+        return;
+    }
+
+    if (operacion.monto <= 0 ||
+        operacion.monto > usuarioActual.saldo) {
+        cerrarModal();
+        notificar("No tienes saldo suficiente.");
+        return;
+    }
+
+    const inicioDia = new Date();
+    inicioDia.setHours(0, 0, 0, 0);
+
+    const totalDiario = datos.movimientos
+        .filter(m =>
+            m.usuarioId === usuarioActual.id &&
+            m.tipo === "Transferencia enviada" &&
+            new Date(m.id).getTime() >= inicioDia.getTime()
+        )
+        .reduce((total, m) => total + m.monto, 0);
+
+    if (totalDiario + operacion.monto > 30000) {
+        cerrarModal();
+        notificar("Superaste el límite diario de Q30,000.");
+        return;
+    }
+
+    // Ejecutar la transferencia.
+    usuarioActual.saldo -= operacion.monto;
+    destinatario.saldo += operacion.monto;
+
+    registrarMovimiento(
+        usuarioActual.id,
+        "Transferencia enviada",
+        operacion.monto,
+        "Para " + destinatario.nombre + ": " + operacion.descripcion
+    );
+
+    registrarMovimiento(
+        destinatario.id,
+        "Transferencia recibida",
+        operacion.monto,
+        "De " + usuarioActual.nombre + ": " + operacion.descripcion
+    );
+
+    ultimoRecibo = {
+        codigo: "NV-" + Date.now(),
+        destinatario: destinatario.nombre,
+        cuenta: destinatario.cuenta,
+        monto: operacion.monto,
+        descripcion: operacion.descripcion,
+        fecha: fechaActual()
+    };
+
+    cerrarModal();
     guardarDatos();
+    actualizarSistema();
 
-    // Actualizar la pantalla
-    actualizarInformacion();
+    document.getElementById("formTransferencia").reset();
+    document.getElementById("mensajeTransferencia").textContent =
+        "¡Transferencia realizada correctamente!";
 
-    // Cerrar confirmación
-    modalConfirmacion.classList.add("oculto");
-
-    // Mostrar alerta de éxito
-    mostrarAlertaTransferencia(
-        "Tu transferencia se realizó correctamente.",
-        true
-    );
-
-    // Mostrar comprobante
-    mostrarComprobante({
-        numero: numeroOperacion,
-        fecha: new Date().toLocaleString("es-GT"),
-        destinatario: datos.destinatario,
-        cuenta: datos.cuenta,
-        cantidad: cantidad,
-        saldo: saldoActual
-    });
-
-    // Limpiar formulario
-    formularioTransferencia.reset();
-
-    actualizarResumenTransferencia();
-
-    // Limpiar datos pendientes
-    transferenciaPendiente = null;
+    mostrarRecibo();
+    notificar("¡Transferencia enviada exitosamente!");
 });
 
-// ========================================
-// MOSTRAR COMPROBANTE
-// ========================================
+/* =====================================
+   COMPROBANTE
+===================================== */
 
-function mostrarComprobante(datos) {
+function mostrarRecibo() {
+    const caja = document.getElementById("reciboTransferencia");
 
-    document.getElementById("comprobanteNumero")
-        .textContent = datos.numero;
+    if (!ultimoRecibo) return;
 
-    document.getElementById("comprobanteFecha")
-        .textContent = datos.fecha;
+    caja.innerHTML = `
+        <h3>Banco Nova</h3>
+        <h2>Comprobante de transferencia</h2>
+        <p><strong>Código:</strong> ${escapar(ultimoRecibo.codigo)}</p>
+        <p><strong>Destinatario:</strong> ${escapar(ultimoRecibo.destinatario)}</p>
+        <p><strong>Cuenta:</strong> ${escapar(ultimoRecibo.cuenta)}</p>
+        <p><strong>Monto:</strong> ${dinero(ultimoRecibo.monto)}</p>
+        <p><strong>Descripción:</strong> ${escapar(ultimoRecibo.descripcion)}</p>
+        <p><strong>Fecha:</strong> ${escapar(ultimoRecibo.fecha)}</p>
+        <p>¡Gracias por utilizar Banco Nova!</p>
+        <button class="btn-secundario" onclick="window.print()">
+            Imprimir comprobante
+        </button>
+    `;
 
-    document.getElementById("comprobanteDestinatario")
-        .textContent = datos.destinatario;
-
-    document.getElementById("comprobanteCuenta")
-        .textContent = datos.cuenta;
-
-    document.getElementById("comprobanteMonto")
-        .textContent = formatoDinero(datos.cantidad);
-
-    document.getElementById("comprobanteSaldo")
-        .textContent = formatoDinero(datos.saldo);
-
-    document.getElementById("modalComprobante")
-        .classList.remove("oculto");
+    caja.classList.remove("oculto");
 }
 
-// Cerrar comprobante
-document.getElementById("cerrarComprobante")
-    .addEventListener("click", function() {
-        document.getElementById("modalComprobante")
-            .classList.add("oculto");
-    });
+/* =====================================
+   AHORROS
+===================================== */
 
-// Imprimir comprobante
-document.getElementById("imprimirComprobante")
-    .addEventListener("click", function() {
-        window.print();
-    });
+document.getElementById("formAhorro").addEventListener("submit", e => {
+    e.preventDefault();
 
-// ========================================
-// ACTUALIZAR INFORMACION DE LA CUENTA
-// ========================================
+    const nombre = document.getElementById("nombreAhorro").value.trim();
+    const objetivo = Number(document.getElementById("objetivoAhorro").value);
+    const aporte = Number(document.getElementById("aporteAhorro").value);
 
-function actualizarInformacion() {
-
-    document.getElementById("saldoMenu").textContent =
-        formatoDinero(saldoActual);
-
-    document.getElementById("saldoConsulta").textContent =
-        formatoDinero(saldoActual);
-
-    document.querySelectorAll(".saldoActual").forEach(
-        function(elemento) {
-            elemento.textContent = formatoDinero(saldoActual);
-        }
-    );
-
-    document.getElementById("totalMovimientos").textContent =
-        movimientos.length;
-
-    mostrarMovimientos("listaMovimientos");
-    mostrarMovimientos("movimientosConsulta");
-
-    actualizarLimiteDiario();
-}
-
-// ========================================
-// MOSTRAR HISTORIAL DE MOVIMIENTOS
-// ========================================
-
-function mostrarMovimientos(idTabla) {
-    const contenedor = document.getElementById(idTabla);
-
-    contenedor.innerHTML = "";
-
-    if (movimientos.length === 0) {
-        const mensaje = document.createElement("p");
-
-        mensaje.className = "vacio";
-        mensaje.textContent = "Todavía no hay movimientos.";
-
-        contenedor.appendChild(mensaje);
+    if (!Number.isFinite(objetivo) || !Number.isFinite(aporte) ||
+        objetivo <= 0 || aporte < 0 || aporte > usuarioActual.saldo) {
+        notificar("Revisa el objetivo y el aporte inicial.");
         return;
     }
 
-    movimientos.slice(0, 10).forEach(function(movimiento) {
+    usuarioActual.saldo -= aporte;
 
-        const fila = document.createElement("div");
-        fila.className = "movimiento";
-
-        const informacion = document.createElement("div");
-
-        const descripcion = document.createElement("strong");
-        descripcion.textContent = movimiento.descripcion;
-
-        const fecha = document.createElement("small");
-        fecha.textContent = movimiento.fecha;
-
-        informacion.appendChild(descripcion);
-        informacion.appendChild(fecha);
-
-        const monto = document.createElement("span");
-
-        monto.textContent =
-            (movimiento.cantidad > 0 ? "+" : "") +
-            formatoDinero(movimiento.cantidad);
-
-        monto.className =
-            movimiento.cantidad > 0
-                ? "positivo"
-                : "negativo";
-
-        fila.appendChild(informacion);
-        fila.appendChild(monto);
-
-        contenedor.appendChild(fila);
+    datos.ahorros.push({
+        id: Date.now(),
+        usuarioId: usuarioActual.id,
+        nombre,
+        objetivo,
+        acumulado: aporte,
+        fecha: fechaActual()
     });
+
+    if (aporte > 0) {
+        registrarMovimiento(usuarioActual.id, "Aporte a ahorro", aporte,
+            "Meta: " + nombre);
+    }
+
+    guardarDatos();
+    e.target.reset();
+    actualizarSistema();
+    notificar("¡Tu meta de ahorro fue creada!");
+});
+
+function renderizarAhorros() {
+    const lista = document.getElementById("listaAhorros");
+    const ahorros = datos.ahorros.filter(a => a.usuarioId === usuarioActual.id);
+
+    lista.innerHTML = ahorros.length
+        ? ahorros.map(a => {
+            const porcentaje = Math.min(100, a.acumulado / a.objetivo * 100);
+            return `
+                <div class="tarjeta-elemento">
+                    <h3>${escapar(a.nombre)}</h3>
+                    <p>Ahorrado: ${dinero(a.acumulado)}</p>
+                    <p>Objetivo: ${dinero(a.objetivo)}</p>
+                    <div class="progreso">
+                        <div style="width:${porcentaje}%"></div>
+                    </div>
+                    <p>${porcentaje.toFixed(1)}% completado</p>
+                    <button class="btn-secundario" onclick="aportarAhorro(${a.id})">
+                        Agregar dinero
+                    </button>
+                </div>
+            `;
+        }).join("")
+        : "<p>Aún no tienes metas de ahorro.</p>";
 }
 
-// ========================================
-// MENSAJES DE DEPOSITOS Y RETIROS
-// ========================================
+function aportarAhorro(id) {
+    const ahorro = datos.ahorros.find(a =>
+        a.id === Number(id) && a.usuarioId === usuarioActual.id
+    );
 
-function mostrarResultado(elemento, texto, correcto) {
-    elemento.textContent = texto;
+    if (!ahorro) return;
 
-    elemento.className = correcto
-        ? "resultado exito"
-        : "resultado error";
+    const monto = Number(prompt("¿Cuánto deseas agregar a tu ahorro?"));
+
+    if (!Number.isFinite(monto) || monto <= 0 || monto > usuarioActual.saldo) {
+        notificar("Monto inválido o saldo insuficiente.");
+        return;
+    }
+
+    usuarioActual.saldo -= monto;
+    ahorro.acumulado += monto;
+
+    registrarMovimiento(usuarioActual.id, "Aporte a ahorro", monto,
+        "Meta: " + ahorro.nombre);
+
+    guardarDatos();
+    actualizarSistema();
+    notificar("¡Aporte agregado correctamente!");
 }
 
-// ========================================
-// INICIAR EL SISTEMA
-// ========================================
+/* =====================================
+   COMUNIDAD
+===================================== */
 
-// Recuperar los datos guardados al abrir la página
-cargarDatos();
+document.getElementById("formPublicacion").addEventListener("submit", e => {
+    e.preventDefault();
 
-// Mostrar información actualizada
-actualizarInformacion();
+    const texto = document.getElementById("textoPublicacion").value.trim();
+    const categoria = document.getElementById("categoriaPublicacion").value;
+
+    if (!texto) return;
+
+    datos.publicaciones.unshift({
+        id: Date.now(),
+        usuarioId: usuarioActual.id,
+        nombre: usuarioActual.nombre,
+        texto,
+        categoria,
+        fecha: fechaActual(),
+        likes: [],
+        comentarios: []
+    });
+
+    guardarDatos();
+    e.target.reset();
+    actualizarSistema();
+    notificar("¡Tu publicación ya está en la comunidad!");
+});
+
+function renderizarPublicaciones() {
+    const lista = document.getElementById("listaPublicaciones");
+
+    if (!datos.publicaciones.length) {
+        lista.innerHTML = "<p>Aún no hay publicaciones. ¡Sé la primera persona en compartir algo!</p>";
+        return;
+    }
+
+    lista.innerHTML = datos.publicaciones.map(p => `
+        <div class="tarjeta-publicacion">
+            <h3>${escapar(p.nombre)}</h3>
+            <small>${escapar(p.categoria)} · ${escapar(p.fecha)}</small>
+            <p>${escapar(p.texto)}</p>
+
+            <div class="publicacion-acciones">
+                <button onclick="reaccionar(${p.id})">
+                    ♥ ${p.likes.length} Me gusta
+                </button>
+                <button onclick="comentar(${p.id})">
+                    Comentar (${p.comentarios.length})
+                </button>
+                <button onclick="reportar(${p.id})">Reportar</button>
+                ${p.usuarioId === usuarioActual.id
+                    ? `<button onclick="eliminarPublicacion(${p.id})">Eliminar</button>`
+                    : ""}
+            </div>
+
+            <div class="comentarios">
+                ${p.comentarios.map(c => `
+                    <div class="comentario">
+                        <strong>${escapar(c.nombre)}</strong>
+                        <p>${escapar(c.texto)}</p>
+                    </div>
+                `).join("")}
+            </div>
+        </div>
+    `).join("");
+}
+
+function reaccionar(id) {
+    const p = datos.publicaciones.find(p => p.id === Number(id));
+    if (!p) return;
+
+    const indice = p.likes.indexOf(usuarioActual.id);
+
+    if (indice >= 0) p.likes.splice(indice, 1);
+    else p.likes.push(usuarioActual.id);
+
+    guardarDatos();
+    renderizarPublicaciones();
+}
+
+function comentar(id) {
+    const p = datos.publicaciones.find(p => p.id === Number(id));
+    if (!p) return;
+
+    const texto = prompt("Escribe tu comentario:");
+
+    if (!texto || !texto.trim()) return;
+
+    p.comentarios.push({
+        nombre: usuarioActual.nombre,
+        usuarioId: usuarioActual.id,
+        texto: texto.trim()
+    });
+
+    guardarDatos();
+    renderizarPublicaciones();
+    notificar("Comentario publicado.");
+}
+
+function eliminarPublicacion(id) {
+    const p = datos.publicaciones.find(p => p.id === Number(id));
+
+    if (!p || p.usuarioId !== usuarioActual.id) return;
+    if (!confirm("¿Deseas eliminar esta publicación?")) return;
+
+    datos.publicaciones = datos.publicaciones.filter(p => p.id !== Number(id));
+    datos.reportes = datos.reportes.filter(r => r.publicacionId !== Number(id));
+
+    guardarDatos();
+    actualizarSistema();
+    notificar("Publicación eliminada.");
+}
+
+function reportar(id) {
+    const motivo = prompt("¿Por qué deseas reportar esta publicación?");
+
+    if (!motivo || !motivo.trim()) return;
+
+    datos.reportes.push({
+        id: Date.now(),
+        publicacionId: Number(id),
+        reportante: usuarioActual.nombre,
+        motivo: motivo.trim(),
+        fecha: fechaActual(),
+        revisado: false
+    });
+
+    guardarDatos();
+    notificar("Reporte enviado al administrador.");
+}
+
+/* =====================================
+   CONTACTOS
+===================================== */
+
+document.getElementById("formContacto").addEventListener("submit", e => {
+    e.preventDefault();
+
+    const id = Number(document.getElementById("usuarioContacto").value);
+    if (!id || id === usuarioActual.id) return;
+
+    const clave = "novaContactos_" + usuarioActual.id;
+    const contactos = JSON.parse(localStorage.getItem(clave) || "[]");
+
+    if (contactos.includes(id)) {
+        notificar("Este contacto ya está agregado.");
+        return;
+    }
+
+    contactos.push(id);
+    localStorage.setItem(clave, JSON.stringify(contactos));
+
+    e.target.reset();
+    renderizarContactos();
+    notificar("Contacto agregado.");
+});
+
+function renderizarContactos() {
+    const select = document.getElementById("usuarioContacto");
+    const lista = document.getElementById("listaContactos");
+
+    const usuarios = datos.usuarios.filter(u =>
+        u.rol === "usuario" && u.id !== usuarioActual.id && !u.bloqueado
+    );
+
+    select.innerHTML = '<option value="">Selecciona un usuario</option>' +
+        usuarios.map(u =>
+            `<option value="${u.id}">${escapar(u.nombre)}</option>`
+        ).join("");
+
+    const clave = "novaContactos_" + usuarioActual.id;
+    const contactos = JSON.parse(localStorage.getItem(clave) || "[]");
+
+    const registrados = contactos.map(buscarUsuario).filter(Boolean);
+
+    lista.innerHTML = registrados.length
+        ? registrados.map(u => `
+            <div class="tarjeta-elemento">
+                <h3>${escapar(u.nombre)}</h3>
+                <p>${escapar(u.correo)}</p>
+                <p>${escapar(u.cuenta)}</p>
+                <button class="btn-secundario" onclick="quitarContacto(${u.id})">
+                    Quitar contacto
+                </button>
+            </div>
+        `).join("")
+        : "<p>Aún no tienes contactos agregados.</p>";
+}
+
+function quitarContacto(id) {
+    const clave = "novaContactos_" + usuarioActual.id;
+    let contactos = JSON.parse(localStorage.getItem(clave) || "[]");
+
+    contactos = contactos.filter(x => x !== Number(id));
+    localStorage.setItem(clave, JSON.stringify(contactos));
+
+    renderizarContactos();
+    notificar("Contacto eliminado.");
+}
+
+/* =====================================
+   PERFIL
+===================================== */
+
+function renderizarPerfil() {
+    document.getElementById("perfilNombre").textContent = usuarioActual.nombre;
+    document.getElementById("perfilCorreo").textContent = usuarioActual.correo;
+    document.getElementById("perfilCuenta").textContent =
+        "Cuenta: " + usuarioActual.cuenta;
+    document.getElementById("perfilFecha").textContent =
+        "Registrado: " + usuarioActual.fecha;
+}
+
+document.getElementById("eliminarCuenta").addEventListener("click", () => {
+    if (!confirm("¿Seguro que deseas eliminar tu cuenta de demostración?")) return;
+
+    const id = usuarioActual.id;
+
+    datos.usuarios = datos.usuarios.filter(u => u.id !== id);
+    datos.movimientos = datos.movimientos.filter(m => m.usuarioId !== id);
+    datos.ahorros = datos.ahorros.filter(a => a.usuarioId !== id);
+    datos.publicaciones = datos.publicaciones.filter(p => p.usuarioId !== id);
+
+    datos.publicaciones.forEach(p => {
+        p.likes = p.likes.filter(x => x !== id);
+        p.comentarios = p.comentarios.filter(c => c.usuarioId !== id);
+    });
+
+    guardarDatos();
+    localStorage.removeItem("novaContactos_" + id);
+
+    cerrarSesion();
+    notificar("Cuenta eliminada.");
+});
+
+/* =====================================
+   ADMINISTRADOR
+===================================== */
+
+function renderizarAdmin() {
+    document.getElementById("adminTotalUsuarios").textContent =
+        datos.usuarios.filter(u => u.rol === "usuario").length;
+
+    document.getElementById("adminTotalMovimientos").textContent =
+        datos.movimientos.length;
+
+    document.getElementById("adminTotalPublicaciones").textContent =
+        datos.publicaciones.length;
+
+    renderizarUsuariosAdmin();
+    renderizarMovimientosAdmin();
+    renderizarReportesAdmin();
+}
+
+function renderizarUsuariosAdmin() {
+    const lista = document.getElementById("listaUsuarios");
+    const usuarios = datos.usuarios.filter(u => u.rol === "usuario");
+
+    lista.innerHTML = usuarios.length
+        ? usuarios.map(u => `
+            <div class="tarjeta-elemento">
+                <h3>${escapar(u.nombre)}</h3>
+                <p>${escapar(u.correo)}</p>
+                <p>Cuenta: ${escapar(u.cuenta)}</p>
+                <p>Saldo: ${dinero(u.saldo)}</p>
+                <p>Estado: ${u.bloqueado ? "Bloqueado" : "Activo"}</p>
+                <button class="admin-boton bloquear"
+                    onclick="cambiarEstadoUsuario(${u.id})">
+                    ${u.bloqueado ? "Desbloquear" : "Bloquear"}
+                </button>
+            </div>
+        `).join("")
+        : "<p>No hay usuarios registrados.</p>";
+}
+
+function cambiarEstadoUsuario(id) {
+    const u = buscarUsuario(id);
+    if (!u || u.rol === "admin") return;
+
+    u.bloqueado = !u.bloqueado;
+
+    guardarDatos();
+    renderizarAdmin();
+
+    notificar(u.bloqueado ? "Usuario bloqueado." : "Usuario desbloqueado.");
+}
+
+function renderizarMovimientosAdmin() {
+    const lista = document.getElementById("listaMovimientosAdmin");
+
+    lista.innerHTML = datos.movimientos.length
+        ? datos.movimientos.slice(0, 20).map(m => {
+            const u = buscarUsuario(m.usuarioId);
+
+            return `
+                <div class="tarjeta-movimiento">
+                    <h3>${escapar(m.tipo)}</h3>
+                    <p>Usuario: ${escapar(u?.nombre || "Cuenta eliminada")}</p>
+                    <p>${escapar(m.descripcion)}</p>
+                    <p>${dinero(m.monto)} · ${escapar(m.fecha)}</p>
+                </div>
+            `;
+        }).join("")
+        : "<p>No hay movimientos registrados.</p>";
+}
+
+function renderizarReportesAdmin() {
+    const lista = document.getElementById("listaReportes");
+
+    lista.innerHTML = datos.reportes.length
+        ? datos.reportes.map(r => {
+            const p = datos.publicaciones.find(p => p.id === r.publicacionId);
+
+            return `
+                <div class="tarjeta-elemento">
+                    <h3>Reporte de publicación</h3>
+                    <p>Reportado por: ${escapar(r.reportante)}</p>
+                    <p>Motivo: ${escapar(r.motivo)}</p>
+                    <p>Fecha: ${escapar(r.fecha)}</p>
+                    <p>Estado: ${r.revisado ? "Revisado" : "Pendiente"}</p>
+                    ${p
+                        ? `<p>Publicación: ${escapar(p.texto)}</p>`
+                        : "<p>La publicación ya no existe.</p>"}
+                    ${!r.revisado
+                        ? `<button class="admin-boton"
+                            onclick="revisarReporte(${r.id})">Marcar revisado</button>`
+                        : ""}
+                </div>
+            `;
+        }).join("")
+        : "<p>No hay reportes pendientes.</p>";
+}
+
+function revisarReporte(id) {
+    const reporte = datos.reportes.find(r => r.id === Number(id));
+    if (!reporte) return;
+
+    reporte.revisado = true;
+
+    guardarDatos();
+    renderizarAdmin();
+    notificar("Reporte marcado como revisado.");
+}
+
+/* =====================================
+   INICIO
+===================================== */
+
+mostrarPantalla("pantallaLogin");
