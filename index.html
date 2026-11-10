@@ -4,367 +4,322 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Banco Nova</title>
+    <title>Banco Nova | Tu dinero, tu comunidad</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <header class="encabezado">
-        <div class="logo">BANCO <span>NOVA</span></div>
-        <p>Tu dinero, tu tranquilidad</p>
-    </header>
+    <!-- LOGIN -->
+    <main id="pantallaLogin" class="pantalla">
+        <div class="contenedor-login">
+            <div class="logo">
+                <h1>Banco <span>Nova</span></h1>
+                <p>Tu dinero, tu comunidad.</p>
+            </div>
 
-    <main class="contenedor">
-
-        <!-- INICIO DE SESION -->
-        <section id="pantallaLogin" class="tarjeta login">
-            <div class="icono-principal">🏦</div>
-            <h1>Bienvenido a Banco Nova</h1>
-            <p class="subtitulo">Ingresa tus datos para continuar</p>
+            <h2>Bienvenido</h2>
+            <p class="descripcion">Ingresa a tu cuenta para continuar.</p>
 
             <form id="formLogin">
-                <label for="usuario">Usuario</label>
-                <input type="text" id="usuario"
-                       placeholder="Ingresa tu usuario" required>
+                <label>Correo electrónico</label>
+                <input type="email" id="correoLogin" required placeholder="correo@ejemplo.com">
 
-                <label for="clave">Contraseña</label>
-                <input type="password" id="clave"
-                       placeholder="Ingresa tu contraseña" required>
+                <label>Contraseña</label>
+                <input type="password" id="passwordLogin" required placeholder="Tu contraseña">
 
-                <button type="submit" class="boton-principal">
-                    Iniciar sesión
-                </button>
+                <button type="submit" class="btn-principal">Iniciar sesión</button>
+                <p id="mensajeLogin" class="mensaje"></p>
             </form>
 
-            <p id="mensajeLogin" class="mensaje"></p>
-            <p class="nota">Usuario de prueba: admin | Contraseña: 2026</p>
-        </section>
-
-        <!-- MENU PRINCIPAL -->
-        <section id="menuPrincipal" class="tarjeta oculto">
-            <div class="bienvenida">
-                <div>
-                    <h1>¡Hola, <span id="nombreUsuario">admin</span>!</h1>
-                    <p>¿Qué deseas realizar hoy?</p>
-                </div>
-                <button id="cerrarSesion" class="boton-salir">
-                    Cerrar sesión
-                </button>
-            </div>
-
-            <div class="saldo-principal">
-                <p>Saldo disponible</p>
-                <h2 id="saldoMenu">Q 1,500.00</h2>
-                <small>Cuenta No. 100001</small>
-            </div>
-
-            <h2 class="titulo-seccion">Operaciones bancarias</h2>
-
-            <div class="opciones">
-                <button class="operacion" data-pagina="paginaDeposito">
-                    <span>💰</span>
-                    <strong>Depósitos</strong>
-                    <small>Agregar dinero</small>
-                </button>
-
-                <button class="operacion" data-pagina="paginaRetiro">
-                    <span>💵</span>
-                    <strong>Retiros</strong>
-                    <small>Retirar dinero</small>
-                </button>
-
-                <button class="operacion" data-pagina="paginaTransferencia">
-                    <span>🔄</span>
-                    <strong>Transferencias</strong>
-                    <small>Enviar dinero</small>
-                </button>
-
-                <button class="operacion" data-pagina="paginaConsulta">
-                    <span>📋</span>
-                    <strong>Consultas</strong>
-                    <small>Ver información</small>
-                </button>
-            </div>
-
-            <div class="movimientos">
-                <h2>Movimientos recientes</h2>
-                <div id="listaMovimientos">
-                    <p class="vacio">Todavía no hay movimientos.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- PAGINA DE DEPOSITO -->
-        <section id="paginaDeposito" class="tarjeta pagina oculto">
-            <div class="encabezado-pagina">
-                <span class="icono-pagina">💰</span>
-                <div>
-                    <h1>Realizar depósito</h1>
-                    <p>Agrega dinero a tu cuenta</p>
-                </div>
-            </div>
-
-            <div class="resumen">
-                Saldo actual:
-                <strong class="saldoActual">Q 1,500.00</strong>
-            </div>
-
-            <form class="formulario" data-tipo="deposito">
-                <label for="montoDeposito">Monto a depositar</label>
-                <input type="number" id="montoDeposito"
-                       min="0.01" step="0.01"
-                       placeholder="Ej. 500" required>
-
-                <button type="submit" class="boton-principal">
-                    Confirmar depósito
-                </button>
-
-                <p class="resultado"></p>
-            </form>
-
-            <button class="boton-secundario volver">Volver al menú</button>
-        </section>
-
-        <!-- PAGINA DE RETIRO -->
-        <section id="paginaRetiro" class="tarjeta pagina oculto">
-            <div class="encabezado-pagina">
-                <span class="icono-pagina">💵</span>
-                <div>
-                    <h1>Realizar retiro</h1>
-                    <p>Retira dinero de tu cuenta</p>
-                </div>
-            </div>
-
-            <div class="resumen">
-                Saldo actual:
-                <strong class="saldoActual">Q 1,500.00</strong>
-            </div>
-
-            <form class="formulario" data-tipo="retiro">
-                <label for="montoRetiro">Monto a retirar</label>
-                <input type="number" id="montoRetiro"
-                       min="0.01" step="0.01"
-                       placeholder="Ej. 200" required>
-
-                <button type="submit" class="boton-principal">
-                    Confirmar retiro
-                </button>
-
-                <p class="resultado"></p>
-            </form>
-
-            <button class="boton-secundario volver">Volver al menú</button>
-        </section>
-
-        <!-- PAGINA DE TRANSFERENCIA -->
-        <section id="paginaTransferencia" class="tarjeta pagina oculto">
-            <div class="encabezado-pagina">
-                <span class="icono-pagina">🔄</span>
-                <div>
-                    <h1>Realizar transferencia</h1>
-                    <p>Envía dinero a otra cuenta</p>
-                </div>
-            </div>
-
-            <div class="resumen">
-                Saldo actual:
-                <strong class="saldoActual">Q 1,500.00</strong>
-            </div>
-
-            <!-- LIMITE DIARIO -->
-            <div class="limite-diario">
-                <div class="limite-titulo">
-                    <div>
-                        <h3>Límite diario de transferencias</h3>
-                        <p>Control de seguridad de tu cuenta</p>
-                    </div>
-                    <span class="escudo">🛡️</span>
-                </div>
-
-                <div class="limite-cantidades">
-                    <div>
-                        <small>Disponible</small>
-                        <h2 id="limiteDisponible">Q 30,000.00</h2>
-                    </div>
-
-                    <div class="utilizado">
-                        <small>Utilizado</small>
-                        <strong id="limiteUtilizado">Q 0.00</strong>
-                    </div>
-                </div>
-
-                <div class="barra-fondo">
-                    <div id="barraLimite" class="barra-progreso"></div>
-                </div>
-
-                <div class="limite-pie">
-                    <span>Q 0.00</span>
-                    <span>Límite: Q 30,000.00</span>
-                </div>
-            </div>
-
-            <form class="formulario" data-tipo="transferencia">
-                <label for="cuentaDestino">Selecciona la cuenta destino</label>
-
-                <select id="cuentaDestino" required>
-                    <option value="">Selecciona una cuenta</option>
-                    <option value="100002">100002 - Carlos Méndez</option>
-                    <option value="100003">100003 - Ana López</option>
-                </select>
-
-                <div id="resumenDestino" class="resumen-destino"></div>
-
-                <label for="montoTransferencia">Monto a transferir</label>
-                <input type="number" id="montoTransferencia"
-                       min="0.01" step="0.01"
-                       placeholder="Ej. 500" required>
-
-                <button type="submit" class="boton-principal">
-                    Continuar transferencia
-                </button>
-
-                <div id="alertaTransferencia"
-                     class="alerta-transferencia oculto"
-                     role="status" aria-live="polite">
-                    <span id="iconoAlerta">✓</span>
-                    <div>
-                        <strong id="tituloAlerta">Operación realizada</strong>
-                        <p id="textoAlerta"></p>
-                    </div>
-                </div>
-
-                <p class="resultado"></p>
-            </form>
-
-            <button class="boton-secundario volver">Volver al menú</button>
-        </section>
-
-        <!-- PAGINA DE CONSULTA -->
-        <section id="paginaConsulta" class="tarjeta pagina oculto">
-            <div class="encabezado-pagina">
-                <span class="icono-pagina">📋</span>
-                <div>
-                    <h1>Consulta de cuenta</h1>
-                    <p>Información de tu cuenta bancaria</p>
-                </div>
-            </div>
-
-            <div class="saldo-consulta">
-                <p>Saldo disponible</p>
-                <h2 id="saldoConsulta">Q 1,500.00</h2>
-            </div>
-
-            <div class="datos-cuenta">
-                <p><strong>Banco:</strong> Banco Nova</p>
-                <p><strong>Titular:</strong> <span id="nombreConsulta">admin</span></p>
-                <p><strong>Número de cuenta:</strong> 100001</p>
-                <p><strong>Tipo de cuenta:</strong> Cuenta monetaria</p>
-                <p><strong>Total de movimientos:</strong>
-                    <span id="totalMovimientos">0</span>
-                </p>
-            </div>
-
-            <div class="movimientos">
-                <h2>Historial de movimientos</h2>
-                <div id="movimientosConsulta">
-                    <p class="vacio">Todavía no hay movimientos.</p>
-                </div>
-            </div>
-
-            <button class="boton-secundario volver">Volver al menú</button>
-        </section>
-
+            <p class="texto-registro">
+                ¿No tienes cuenta?
+                <a href="#" id="mostrarRegistro">Crear cuenta</a>
+            </p>
+            <p class="demo">Demo: admin@banconova.com / admin123</p>
+        </div>
     </main>
 
-    <!-- VENTANA PARA CONFIRMAR TRANSFERENCIA -->
-    <div id="modalConfirmacion" class="fondo-modal oculto">
-        <div class="modal">
-            <div class="modal-icono">🔄</div>
-            <h2>Confirmar transferencia</h2>
-            <p>Verifica los datos antes de continuar.</p>
-
-            <div class="detalle-confirmacion">
-                <p><strong>Destinatario:</strong>
-                    <span id="confirmarDestinatario"></span>
-                </p>
-                <p><strong>Cuenta:</strong>
-                    <span id="confirmarCuenta"></span>
-                </p>
-                <p><strong>Monto:</strong>
-                    <span id="confirmarMonto"></span>
-                </p>
-                <p><strong>Saldo después:</strong>
-                    <span id="confirmarSaldo"></span>
-                </p>
+    <!-- REGISTRO -->
+    <main id="pantallaRegistro" class="pantalla oculto">
+        <div class="contenedor-login">
+            <div class="logo">
+                <h1>Banco <span>Nova</span></h1>
             </div>
 
-            <div class="botones-modal">
-                <button id="cancelarTransferencia"
-                        class="boton-secundario">
+            <h2>Crear una cuenta</h2>
+            <p class="descripcion">Únete a nuestra comunidad financiera.</p>
+
+            <form id="formRegistro">
+                <label>Nombre completo</label>
+                <input type="text" id="nombreRegistro" required>
+
+                <label>Correo electrónico</label>
+                <input type="email" id="correoRegistro" required>
+
+                <label>Contraseña</label>
+                <input type="password" id="passwordRegistro" minlength="6" required>
+
+                <button class="btn-principal" type="submit">Registrarme</button>
+                <p id="mensajeRegistro" class="mensaje"></p>
+            </form>
+
+            <p class="texto-registro">
+                ¿Ya tienes cuenta?
+                <a href="#" id="mostrarLogin">Iniciar sesión</a>
+            </p>
+        </div>
+    </main>
+
+    <!-- PANEL DE USUARIO -->
+    <main id="panelUsuario" class="oculto">
+
+        <header class="encabezado">
+            <div class="logo">
+                <h1>Banco <span>Nova</span></h1>
+                <p>Tu dinero, tu comunidad.</p>
+            </div>
+
+            <div class="usuario-info">
+                <span id="nombreUsuario"></span>
+                <button id="cerrarSesion" class="btn-salir">Cerrar sesión</button>
+            </div>
+        </header>
+
+        <nav class="menu">
+            <button class="opcion-menu activa" data-seccion="inicio">Inicio</button>
+            <button class="opcion-menu" data-seccion="transferencias">Transferencias</button>
+            <button class="opcion-menu" data-seccion="movimientos">Movimientos</button>
+            <button class="opcion-menu" data-seccion="ahorros">Mis ahorros</button>
+            <button class="opcion-menu" data-seccion="comunidad">Comunidad</button>
+            <button class="opcion-menu" data-seccion="contactos">Contactos</button>
+            <button class="opcion-menu" data-seccion="perfil">Mi perfil</button>
+        </nav>
+
+        <div class="contenido">
+
+            <!-- INICIO -->
+            <section id="seccion-inicio" class="seccion">
+                <h2>¡Hola, <span id="saludoUsuario"></span>! 👋</h2>
+                <p class="subtitulo">Este es el resumen de tu cuenta.</p>
+
+                <div class="tarjeta-saldo">
+                    <p>Saldo disponible</p>
+                    <h2 id="saldoUsuario">Q 0.00</h2>
+                    <p id="numeroCuenta"></p>
+                </div>
+
+                <div class="estadisticas">
+                    <div class="tarjeta">
+                        <span>↗</span>
+                        <h3>Transferencias</h3>
+                        <p id="totalTransferencias">0</p>
+                    </div>
+                    <div class="tarjeta">
+                        <span>♡</span>
+                        <h3>Metas de ahorro</h3>
+                        <p id="totalAhorros">0</p>
+                    </div>
+                    <div class="tarjeta">
+                        <span>◎</span>
+                        <h3>Publicaciones</h3>
+                        <p id="totalPublicaciones">0</p>
+                    </div>
+                </div>
+
+                <div class="resumen">
+                    <h3>Actividad reciente</h3>
+                    <div id="actividadReciente"></div>
+                </div>
+
+                <div class="resumen">
+                    <h3>Bienvenido a tu comunidad</h3>
+                    <p>En Banco Nova puedes administrar tu dinero, ahorrar y compartir experiencias financieras con otros usuarios.</p>
+                    <button class="btn-secundario" data-ir="comunidad">Explorar comunidad</button>
+                </div>
+            </section>
+
+            <!-- TRANSFERENCIAS -->
+            <section id="seccion-transferencias" class="seccion oculto">
+                <h2>Transferencias</h2>
+                <p class="subtitulo">Envía dinero a otros miembros de Banco Nova.</p>
+
+                <form id="formTransferencia">
+                    <label>Selecciona el destinatario</label>
+                    <select id="cuentaDestino" required></select>
+
+                    <label>Monto a transferir (Q)</label>
+                    <input type="number" id="montoTransferencia" min="0.01" step="0.01" required>
+
+                    <label>Descripción</label>
+                    <input type="text" id="descripcionTransferencia" placeholder="Ej. Pago de servicio">
+
+                    <button type="submit" class="btn-principal">Continuar</button>
+                    <p id="mensajeTransferencia" class="mensaje"></p>
+                </form>
+
+                <div id="reciboTransferencia" class="recibo oculto"></div>
+            </section>
+
+            <!-- MOVIMIENTOS -->
+            <section id="seccion-movimientos" class="seccion oculto">
+                <h2>Mis movimientos</h2>
+                <p class="subtitulo">Consulta las operaciones de tu cuenta.</p>
+                <div id="listaMovimientos"></div>
+            </section>
+
+            <!-- AHORROS -->
+            <section id="seccion-ahorros" class="seccion oculto">
+                <h2>Mis ahorros</h2>
+                <p class="subtitulo">Organiza tus metas y alcanza tus objetivos.</p>
+
+                <form id="formAhorro">
+                    <label>Nombre de la meta</label>
+                    <input type="text" id="nombreAhorro" required placeholder="Ej. Viaje">
+
+                    <label>Objetivo (Q)</label>
+                    <input type="number" id="objetivoAhorro" min="0.01" step="0.01" required>
+
+                    <label>Aporte inicial (Q)</label>
+                    <input type="number" id="aporteAhorro" min="0" step="0.01" value="0" required>
+
+                    <button type="submit" class="btn-principal">Crear meta</button>
+                </form>
+
+                <div id="listaAhorros"></div>
+            </section>
+
+            <!-- COMUNIDAD -->
+            <section id="seccion-comunidad" class="seccion oculto">
+                <h2>Comunidad Nova</h2>
+                <p class="subtitulo">Comparte ideas, experiencias y consejos financieros.</p>
+
+                <form id="formPublicacion">
+                    <label>¿Qué quieres compartir?</label>
+                    <textarea id="textoPublicacion" required placeholder="Escribe algo para la comunidad..."></textarea>
+
+                    <label>Categoría</label>
+                    <select id="categoriaPublicacion">
+                        <option value="Consejos financieros">Consejos financieros</option>
+                        <option value="Ahorro">Ahorro</option>
+                        <option value="Experiencias">Experiencias</option>
+                        <option value="Educación financiera">Educación financiera</option>
+                    </select>
+
+                    <button type="submit" class="btn-principal">Publicar</button>
+                </form>
+
+                <div id="listaPublicaciones"></div>
+            </section>
+
+            <!-- CONTACTOS -->
+            <section id="seccion-contactos" class="seccion oculto">
+                <h2>Mis contactos</h2>
+                <p class="subtitulo">Agrega personas para tenerlas a mano.</p>
+
+                <form id="formContacto">
+                    <label>Selecciona un usuario</label>
+                    <select id="usuarioContacto" required></select>
+                    <button type="submit" class="btn-principal">Agregar contacto</button>
+                </form>
+
+                <div id="listaContactos"></div>
+            </section>
+
+            <!-- PERFIL -->
+            <section id="seccion-perfil" class="seccion oculto">
+                <h2>Mi perfil</h2>
+                <div class="resumen">
+                    <h3 id="perfilNombre"></h3>
+                    <p id="perfilCorreo"></p>
+                    <p id="perfilCuenta"></p>
+                    <p id="perfilFecha"></p>
+                    <button id="eliminarCuenta" class="btn-peligro">Eliminar mi cuenta de demostración</button>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- PANEL ADMIN -->
+    <main id="panelAdmin" class="oculto">
+        <header class="encabezado">
+            <div class="logo">
+                <h1>Banco <span>Nova</span></h1>
+                <p>Panel administrativo</p>
+            </div>
+            <button id="cerrarSesionAdmin" class="btn-salir">Cerrar sesión</button>
+        </header>
+
+        <div class="contenido">
+            <h2>Administración del sistema</h2>
+            <p class="subtitulo">Resumen general de Banco Nova.</p>
+
+            <div class="estadisticas">
+                <div class="tarjeta">
+                    <h3>Usuarios registrados</h3>
+                    <p id="adminTotalUsuarios">0</p>
+                </div>
+                <div class="tarjeta">
+                    <h3>Movimientos</h3>
+                    <p id="adminTotalMovimientos">0</p>
+                </div>
+                <div class="tarjeta">
+                    <h3>Publicaciones</h3>
+                    <p id="adminTotalPublicaciones">0</p>
+                </div>
+            </div>
+
+            <div class="resumen">
+                <h3>Usuarios</h3>
+                <div id="listaUsuarios"></div>
+            </div>
+
+            <div class="resumen">
+                <h3>Movimientos recientes</h3>
+                <div id="listaMovimientosAdmin"></div>
+            </div>
+
+            <div class="resumen">
+                <h3>Reportes de publicaciones</h3>
+                <div id="listaReportes"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- VENTANA DE CONFIRMACION -->
+    <div id="modalConfirmacion" class="modal oculto">
+        <div class="modal-contenido">
+            <div class="icono-confirmacion">✓</div>
+            <h2>Confirmar transferencia</h2>
+            <p>Por favor, revisa los datos antes de continuar.</p>
+
+            <div class="detalle-confirmacion">
+                <p>Destinatario</p>
+                <h3 id="confirmarDestinatario"></h3>
+
+                <p>Número de cuenta</p>
+                <h3 id="confirmarCuenta"></h3>
+
+                <p>Monto a transferir</p>
+                <h2 id="confirmarMonto" class="monto-confirmacion"></h2>
+
+                <p>Descripción</p>
+                <h3 id="confirmarDescripcion"></h3>
+            </div>
+
+            <div class="botones-confirmacion">
+                <button type="button" id="cancelarTransferencia" class="btn-cancelar">
                     Cancelar
                 </button>
 
-                <button id="aceptarTransferencia"
-                        class="boton-principal">
-                    Confirmar y enviar
+                <button type="button" id="aceptarTransferencia" class="btn-principal">
+                    Confirmar transferencia
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- COMPROBANTE DE TRANSFERENCIA -->
-    <div id="modalComprobante" class="fondo-modal oculto">
-        <div class="modal comprobante">
-            <div class="comprobante-cabecera">
-                <div class="comprobante-check">✓</div>
-                <h2>¡Transferencia exitosa!</h2>
-                <p>Banco Nova</p>
-            </div>
-
-            <div class="comprobante-monto">
-                <small>Monto transferido</small>
-                <h1 id="comprobanteMonto">Q 0.00</h1>
-            </div>
-
-            <div class="detalle-comprobante">
-                <p><span>Operación</span>
-                    <strong id="comprobanteNumero"></strong>
-                </p>
-                <p><span>Fecha y hora</span>
-                    <strong id="comprobanteFecha"></strong>
-                </p>
-                <p><span>Destinatario</span>
-                    <strong id="comprobanteDestinatario"></strong>
-                </p>
-                <p><span>Cuenta destino</span>
-                    <strong id="comprobanteCuenta"></strong>
-                </p>
-                <p><span>Cuenta origen</span>
-                    <strong>100001</strong>
-                </p>
-                <p><span>Saldo restante</span>
-                    <strong id="comprobanteSaldo"></strong>
-                </p>
-                <p><span>Estado</span>
-                    <strong class="estado-comprobante">Completada</strong>
-                </p>
-            </div>
-
-            <button id="imprimirComprobante"
-                    class="boton-principal">
-                Imprimir comprobante
-            </button>
-
-            <button id="cerrarComprobante"
-                    class="boton-secundario">
-                Cerrar
-            </button>
-        </div>
-    </div>
-
-    <footer>
-        <p>© 2026 Banco Nova | Sistema bancario académico</p>
-    </footer>
+    <div id="notificacion" class="notificacion oculto"></div>
 
     <script src="programa.js"></script>
 </body>
